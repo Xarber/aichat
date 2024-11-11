@@ -261,9 +261,9 @@ class Chat {
             let result = "";
             
             for (var line of data) {
-                try {data = JSON.parse(line)} catch(e) {continue;}
+                try {data = JSON.parse(line)} catch(e) {data = {response: data};}
                 result += data.response;
-                console.log(result);
+                console.log(result, isDone);
             }
         }));
     }

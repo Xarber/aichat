@@ -19,6 +19,7 @@ function deasyncPromise(promise) {
     return result;
 }
 
+console.log(otherargs);
 const cookies = parseCookies(otherargs[0].headers.cookie);
 const ollamaClient = new Ollama();
 deasyncPromise(ollamaClient.setModel("gemma2"));
