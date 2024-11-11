@@ -1,0 +1,36 @@
+{
+  "name": "aichat",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Xarber",
+  "license": "ISC",
+  "description": "AI Chat implementation (ollama required)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xarber/aichat.git"
+  },
+  "keywords": [
+    "AI",
+    "Chat"
+  ],
+  "bugs": {
+    "url": "https://github.com/Xarber/aichat/issues"
+  },
+  "homepage": "https://github.com/Xarber/aichat#readme",
+  "dependencies": {
+    "deasync": "^0.1.30",
+    "formidable": "^3.5.2",
+    "hi-base32": "^0.5.1",
+    "lookpath": "^1.2.2",
+    "ollama-node": "^0.1.28",
+    "os": "^0.1.2",
+    "peer": "^1.0.2",
+    "public-ip": "^7.0.1",
+    "request": "^2.88.2",
+    "ws": "^8.18.0"
+  }
+}

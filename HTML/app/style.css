@@ -1,0 +1,275 @@
+body, html {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+* {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    transition: all 0.5s;
+    color: white;
+}
+
+div.input {
+    display: flex;
+    gap: 10px
+}
+div.input * {
+    flex: 0;
+}
+div.input > input {
+    flex: 20;
+}
+
+input {
+    background-color: rgba(255, 255, 255, 0.1);
+    outline: none;
+    border: 1px solid gray;
+    border-radius: 10px;
+    padding: 10px;
+}
+button {
+    background-color: rgba(255, 255, 255, 0.1);
+    outline: none;
+    border: 1px solid gray;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar {width: 15px;background-color: transparent;}
+::-webkit-scrollbar-thumb {width: 5px;height: 56px;background-clip: content-box;background-color: gray;border-left: 10px solid transparent;border-radius: 0px;}
+
+/*
+::-webkit-scrollbar {width: 20px;background-color: transparent;}
+::-webkit-scrollbar-track {background: transparent;border-radius: 8px;}
+::-webkit-scrollbar-thumb {height: 56px;background: rgb(136, 136, 136);border: 8px solid transparent;;border-radius: 8px;background-clip: content-box;background-color: #888;}
+::-webkit-scrollbar-thumb:hover {border: 8px solid transparent;background-color: rgb(151, 151, 151);}
+::-webkit-scrollbar-corner {background-color: transparent;border: 0;visibility: hidden;opacity: 0;display: none;}
+*/
+
+.chat {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.9);
+}
+.chat > div {padding: 10px;}
+.chat > .sidebar {
+    width: 300px;
+    height: calc(100% - 20px);
+    background-color: rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.chat > .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.chat > .content > .header {
+    display: flex;
+    border-radius: 10px;
+    border: 1px solid gray;
+    gap: 5px;
+}
+.chat > .content > .header > .sender-name {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.chat > .content > .header > .actions {
+    display: flex;
+    gap: 5px;
+}
+.chat > .content > .header > .actions > button {background-color: transparent;border-color: transparent;}
+
+.chat > .content > .messages {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat > .content > .messages > .bubbleGroup {
+    display: flex;
+    gap: 10px;
+}
+
+.chat > .content > .messages > .bubbleGroup.typingBubbleGroup {
+    opacity: 0.3;
+}
+.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .senderAvatar {opacity: 0}
+.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > *:not(.content) {display: none;}
+.chat > .content > .messages > .bubbleGroup.typingBubbleGroup {width: min-content;}
+.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > .content {
+    width: 80px;
+    animation: blink 3s infinite;
+}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage {
+    flex: 1
+}
+
+.chat > .content > .messages > .bubbleGroup > .bubble.senderAvatar {
+    margin: 5px 0;
+}
+.chat > .content > .messages > .bubbleGroup:has(.bubble.sent) {
+    flex-direction: row-reverse;
+}
+
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble {
+    display: block;
+    max-width: calc(80% - 20px);
+    margin: 5px;
+    margin-right: auto;
+    margin-left: 0;
+    padding: 10px 10px 5px 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0 10px 10px 10px;
+}
+.chat > .content > .messages > .bubbleGroup:has(.bubble.system) {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system {
+    display: block;
+    margin: auto;
+    padding: 5px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 12px;
+
+    background-color: transparent;
+}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system > div:not(.content) {display: none;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.sent:not(:only-child):first-child {border-radius: 10px 0 0 0;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):first-child {border-radius: 0px 10px 0 0;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) {border-radius: 0;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child {border-radius: 0 0 10px 10px;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) > .header,
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child > .header {display: none;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.sent {
+    background: rgb(0,129,255);
+    background: linear-gradient(0deg, rgba(0,129,255,1) 0%, rgba(0,129,255,0.8071603641456583) 100%);
+    margin-right: 0;
+    margin-left: auto;
+    border-radius: 10px 0 10px 10px;
+}
+
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble > .header {
+    font-weight: bold;
+}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble > .footer {
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.chat .avatar:has(img) {
+    width: 40px;
+    height: 40px;
+    border-radius: 360px;
+    overflow: hidden;
+}
+.chat .avatar:has(img) > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat > .sidebar > .header > .menuBtn {
+    display: none;
+    aspect-ratio: 1/1;
+    font-size: 25px;
+}
+
+.chat > .sidebar > .header, .chat .user {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+}
+.chat > .sidebar > .users {
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    gap: 5px;
+    padding: 10px;
+    overflow-y: auto;
+}
+.chat > .sidebar > .users > .user:not(:hover) {
+    background-color: transparent;
+}
+.chat > .sidebar > .header > .username, .chat .user > .username {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+}
+
+@media (max-width: 720px) {
+    .chat > .sidebar {width: 50px;position: absolute;top: 0;left: 0;}
+    .chat > .sidebar.extended {
+        width: 90%;
+        background-color: rgba(70, 70, 70);
+        max-width: 400px;
+    }
+    .chat > .sidebar > .header > .menuBtn {display: block;}
+    .chat > .content {margin-left: 70px;}
+    .chat > .sidebar:not(.extended) > .header > .username,
+    .chat > .sidebar:not(.extended) > .users > .user > .username {
+        display: none;
+    }
+    .chat > .sidebar > .users,
+    .chat > .sidebar > .header {
+        padding: 5px;
+    }
+    .chat > .sidebar > .users {
+        gap: 10px;
+    }
+    .chat > .sidebar > .users > .user {padding: 0;}
+}
+@media (max-width: 500px) {
+    .chat > .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        max-width: unset !important;
+    }
+    .chat > .sidebar.extended {
+        width: calc(100% - 20px);
+        background-color: rgba(70, 70, 70);
+    }
+    .chat > .sidebar:not(.extended) {
+        height: 50px;
+        overflow: hidden;
+        background-color: transparent;
+        padding-right: 0;
+        padding-bottom: 0;
+        height: 60px;
+        width: 60px;
+    }
+    .chat > .sidebar:not(.extended) > .users {display: none;}
+    .chat > .sidebar:not(.extended) > .header {
+        background-color: rgba(70, 70, 70);
+        width: 50px;
+        height: 50px;
+    }
+    .chat > .sidebar:not(.extended) > .header > *:not(.menuBtn) {display: none;}
+    .chat > .sidebar:not(.extended) > .header > .menuBtn {width: 50px;}
+    .chat > .sidebar > .header > .menuBtn {display: block;}
+    .chat > .content > .header {margin-left: 70px;}
+    .chat > .content {margin-left: 0;}
+}
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}

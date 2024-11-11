@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat</title>
+    <link rel="stylesheet" href="/app/style.css">
+</head>
+<body>
+    <div class="chat"></div>
+    <script src="/app/chat.js"></script>
+    <script>
+        window.messages = {};
+        const chat = new Chat(document.querySelectorAll(".chat")[0], {
+            openChats: [{
+                id: "0",
+                name: "Note to Self",
+                icon: "https://placehold.co/400"
+            },{
+                id: "wowow",
+                name: "Xarber",
+                icon: "https://www.gstatic.com/stadia/gamers/avatars/mdpi/avatar_38.png"
+            }],
+            loadChatData: (id)=>{
+                return {
+                    messages: window.messages[id] ?? []
+                }
+            },
+            debugUpdateChatData: (id, newData)=>{
+                window.messages[id] = newData.messages;
+            },
+            sendMessage: (id,m)=>{window.messages[id] ??= [];window.messages[id].push(m)}
+        });
+    </script>
+</body>
+</html>
