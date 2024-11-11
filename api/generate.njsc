@@ -26,11 +26,11 @@ deasyncPromise(ollamaClient.setModel("gemma2"));
 otherargs[2].setHeader('Transfer-Encoding', 'chunked');
 otherargs[2].setHeader('Content-Type', 'text/plain');
 
-deasyncPromise(ollamaClient.streamingGenerate(body.prompt ?? "Why is the sky blue?", (data)=>{
+if (body.prompt && body.prompt.length > 0) deasyncPromise(ollamaClient.streamingGenerate(body.prompt ?? "Why is the sky blue?", (data)=>{
     console.log(data);
-    otherargs[2].write(data);
+    otherargs[2].write(JSON.stringify({status: true, response: data})+"\n");
 }));
-
+else echo({status: false, response: "Please enter a prompt."});
 
 /*
 

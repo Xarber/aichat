@@ -130,6 +130,7 @@ button {
     margin-top: 10px;
     margin-bottom: 10px;
 }
+.chat > .content > .messages > .bubbleGroup:has(.bubble.system) > .bubble.senderAvatar.avatar {display: none;}
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system {
     display: block;
     margin: auto;

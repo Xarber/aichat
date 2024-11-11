@@ -1,3 +1,27 @@
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    // Controlla se è oggi
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${hours}:${minutes}`;
+    }
+    
+    // Controlla se è ieri
+    if (date.toDateString() === yesterday.toDateString()) {
+        return `Yesterday at ${hours}:${minutes}`;
+    }
+    
+    // Per altre date, mostra il formato giorno/mese
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}/${month} at ${hours}:${minutes}`;
+}
 class Chat {
     constructor(chatContainer, options = {}) {
         this.chat = chatContainer;
@@ -209,13 +233,14 @@ class Chat {
                 )}">
                     <div class="header">${message.author.username}</div>
                     <div class="content">${message.content}</div>
-                    <div class="footer">${this.formatTimestamp(message.date)}</div>
+                    <div class="footer">${formatTimestamp(message.date)}</div>
                 </div>
             `;
             lastMessageSender = message.sender;
         });
         if (chatMessages.length > 0) {
             chatMessagesDiv.innerHTML += `</div></div>`;
+            chatMessagesDivEl.dataset.lastSender = lastMessageSender;
         }
         chatMessagesDiv.innerHTML += `
             <div class="bubbleGroup typingBubbleGroup" style="display: none;">
@@ -261,7 +286,8 @@ class Chat {
             let result = "";
             
             for (var line of data) {
-                try {data = JSON.parse(line)} catch(e) {data = {response: data};}
+                if (line.length < 2) continue;
+                try {data = JSON.parse(line)} catch(e) {data = {status: true, response: data};}
                 result += data.response;
                 console.log(result, isDone);
             }
@@ -291,32 +317,92 @@ class Chat {
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
     }
 
+    onMessageReceive() {
+
+    }
+
     userTyping(state = false) {
         this.chat.querySelector('.content').querySelector('.typingBubbleGroup').style.display = state ? "flex" : "none";
     }
+}
 
-    formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        
-        // Controlla se è oggi
-        if (date.toDateString() === today.toDateString()) {
-          return `Today at ${hours}:${minutes}`;
-        }
-        
-        // Controlla se è ieri
-        if (date.toDateString() === yesterday.toDateString()) {
-            return `Yesterday at ${hours}:${minutes}`;
-        }
-        
-        // Per altre date, mostra il formato giorno/mese
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        return `${day}/${month} at ${hours}:${minutes}`;
+class ChatBubbleGroup {
+    constructor(avatar, startBubbles) {
+        this.update(startBubbles, avatar);
+    }
+
+    update(bubbles, avatar) {
+        this.bubbles = bubbles ?? this.bubbles ?? [];
+        this.avatar = avatar ?? this.avatar ?? "https://placehold.co/400";
+        return this.renderHTML();
+    }
+
+    renderHTML() {
+        this.bubbleGroup = this.bubbleGroup ?? document.createElement('div');
+        this.bubbleGroup.innerHTML = "";
+        const bubbleGroupAvatar = document.createElement('div');
+        const bubbleGroupMessage = document.createElement('div');
+
+        this.bubbleGroup.className = 'bubbleGroup';
+        bubbleGroupAvatar.className = 'bubble senderAvatar avatar';
+        bubbleGroupMessage.className = 'bubbleGroupMessage';
+
+        bubbleGroupAvatar.innerHTML = `<img src="${this.avatar}" alt="">`;
+
+        this.bubbleGroup.appendChild(bubbleGroupAvatar);
+        this.bubbleGroup.appendChild(bubbleGroupMessage);
+        this.bubbles.forEach((bubble) => {
+            bubbleGroupMessage.appendChild(bubble.renderHTML());
+        });
+        return this.bubbleGroup;
+            /*
+            <div class="bubbleGroup">
+                <div class="bubble senderAvatar avatar">
+                    <img src="https://placehold.co/400" alt="">
+                </div>
+                <div class="bubbleGroupMessage">
+                </div>
+            </div>
+            */
+    }
+
+    addBubble(bubble) {
+        this.bubbles.push(bubble);
+        return this.update();
+    }
+}
+
+class ChatBubble {
+    constructor(message, sender, timestamp) {
+        this.update(message, sender, timestamp);
+    }
+
+    update(message, sender, timestamp, bubbleType = "") {
+        this.message = message ?? this.message ?? "";
+        this.sender = sender ?? this.sender ?? "Unknown";
+        this.timestamp = timestamp ?? new Date().getTime();
+        this.bubbleType = bubbleType ?? this.bubbleType ?? "";
+        return this.renderHTML();
+    }
+
+    renderHTML() {
+        this.bubble = this.bubble ?? document.createElement('div');
+        this.bubble.innerHTML = "";
+        const header = document.createElement('div');
+        const content = document.createElement('div');
+        const footer = document.createElement('div');
+
+        this.bubble.className = 'bubble ' + this.bubbleType;
+        header.className = 'header';
+        content.className = 'content';
+        footer.className = 'footer';
+        header.innerHTML = this.sender;
+        content.innerHTML = this.message;
+        footer.innerHTML = formatTimestamp(this.timestamp);
+
+        this.bubble.appendChild(header);
+        this.bubble.appendChild(content);
+        this.bubble.appendChild(footer);
+        return this.bubble;
     }
 }
