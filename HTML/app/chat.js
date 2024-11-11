@@ -250,7 +250,7 @@ class Chat {
     }
 
     async AIPrompt(content, callback, model = "gemma2") {
-        await this.fetchAndStream('http://localhost:11434/api/generate', {
+        await this.fetchAndStream('/api/generate', {
             method: "POST",
             body: JSON.stringify({
                 model: model,
