@@ -68,6 +68,23 @@ class Chat {
         return false;
     }
 
+    async fetchAndStream(url, options, onDataCallback = console.log) {
+        const response = await fetch(url, options);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let result = '';
+    
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            result += decoder.decode(value, { stream: true });
+            onDataCallback(result, false);
+        }
+    
+        onDataCallback(result, true);
+        return result;
+    }
+
     addEventListeners(addSidebarListener = false) {
         const sidebar = this.chat.querySelector('.sidebar');
         if (addSidebarListener === true) sidebar.addEventListener('click', (event) => {
@@ -230,6 +247,25 @@ class Chat {
         
         const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+    }
+
+    async AIPrompt(content, callback, model = "gemma2") {
+        await fetchAndStream('http://localhost:11434/api/generate', {
+            method: "POST",
+            body: JSON.stringify({
+                model: model,
+                prompt: content
+            })
+        }, callback ?? ((data, isDone)=>{
+            data = data.split("\n");
+            let result = "";
+            
+            for (var line of data) {
+                try {data = JSON.parse(line)} catch(e) {continue;}
+                result += data.response;
+                console.log(result);
+            }
+        }));
     }
 
     debugAddMessage(content, chatId = this.openChats[this.currentChatIndex].id, sender = "user") {
