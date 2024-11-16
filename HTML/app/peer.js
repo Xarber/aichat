@@ -1,4 +1,3 @@
-import { Peer } from '/app/peerjsclient.js';
 class PeerConnection {
     constructor(manager, partyID, eventHandlers, connection) {
         this.status = 'stall';
@@ -27,36 +26,39 @@ class PeerConnection {
         this.connection.on('open', () => {
 
             this.status = 'success';
-            this.eventHandlers.onReady?.();
+            this.eventHandlers?.onReady?.();
 
             this.connection.on('data', (data)=>{
 
                 this.connection.latency = new Date().getTime() - data.debugSentMessageData.timestamp;
-                this.eventHandlers.onData?.(data);
+                this.eventHandlers?.onData?.(data);
 
             });
 
         });
         this.connection.on('close', () => {
 
-            this.eventHandlers.onClose?.();
-            for (var property of this) {
-                this[property] = null;
+            this.eventHandlers?.onClose?.();
+
+            for (var property in this) {
+                
+                delete this[property];
+
             }
+
             this.status = 'closed';
 
         });
         this.connection.on('error', (error) => {
 
-            this.eventHandlers.onError?.(error);
+            this.eventHandlers?.onError?.(error);
 
         });
     }
 
     close() {
         this.connection?.close();
-        this.status = 'stall';
-        this.eventHandlers.onClose?.();
+        this.status = 'closed';
         this.connection = null;
         this.call = null;
     }
@@ -142,6 +144,7 @@ class PeerConnectionManager {
     }
 
     update(peers = [], eventHandlers = {}) {
+        this.eventHandlers = eventHandlers ?? this.eventHandlers ?? {};
         this.peers = peers ?? [];
         this.status = 'pending';
 
@@ -155,7 +158,7 @@ class PeerConnectionManager {
 
         this.peerManager.on('connection', (connection) => {
 
-            this.addPeer(new PeerConnection(this.peerManager, connection.peer, this.eventHandlers?.newConn, connection));
+            this.addPeer("", new PeerConnection(this.peerManager, connection.peer, this.eventHandlers?.newConn, connection));
 
         });
 
@@ -174,6 +177,8 @@ class PeerConnectionManager {
 
         this.peerManager.on('close', ()=>{
 
+            this.eventHandlers?.onKill?.();
+
             for (var property in this) {
 
                 delete this[property];
@@ -181,7 +186,6 @@ class PeerConnectionManager {
             }
 
             this.status = 'killed';
-            this.eventHandlers?.onKill?.();
 
         });
 
@@ -209,23 +213,23 @@ class PeerConnectionManager {
     }
 
     addPeer(peerID, connection) {
-        let conn = connection ?? new PeerConnection(this.getManager(), peerID);
+        let conn = connection ?? new PeerConnection(this.getManager(), peerID, this.eventHandlers?.newConn);
         this.peers.push(conn);
         let index = (this.peers.length - 1);
-        this.eventHandlers?.addPeer(conn, index);
+        this.eventHandlers?.addPeer?.(conn, index);
         return index;
     }
 
     removePeer(peerID) {
         var peerIndex = this.peers.findIndex((peer) => peer.partyID === peerID);
         if (peerIndex > -1) {
-            this.eventHandlers?.removePeer(this.peers[peerIndex], peerIndex);
+            this.eventHandlers?.removePeer?.(this.peers[peerIndex], peerIndex);
             this.peers[peerIndex] = null;
         }
     }
 
     toggleConnection(status = this.status != 'success') {
-        this.status
+        status
         ? this.peerManager.disconnect()
         : this.peerManager.reconnect();
     }
