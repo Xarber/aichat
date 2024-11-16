@@ -112,7 +112,7 @@ button {
 .chat > .content > .messages > .bubbleGroup > .bubble.senderAvatar {
     margin: 5px 0;
 }
-.chat > .content > .messages > .bubbleGroup:has(.bubble.sent) {
+.chat > .content > .messages > .bubbleGroup:has(.bubble.own) {
     flex-direction: row-reverse;
 }
 
@@ -142,13 +142,13 @@ button {
     background-color: transparent;
 }
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system > div:not(.content) {display: none;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.sent:not(:only-child):first-child {border-radius: 10px 0 0 0;}
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.own:not(:only-child):first-child {border-radius: 10px 0 0 0;}
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):first-child {border-radius: 0px 10px 0 0;}
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) {border-radius: 0;}
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child {border-radius: 0 0 10px 10px;}
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) > .header,
 .chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child > .header {display: none;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.sent {
+.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.own {
     background: rgb(0,129,255);
     background: linear-gradient(0deg, rgba(0,129,255,1) 0%, rgba(0,129,255,0.8071603641456583) 100%);
     margin-right: 0;

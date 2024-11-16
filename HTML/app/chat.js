@@ -200,63 +200,22 @@ class Chat {
 
     renderMessages(chatMessages = this.loadChatData(this.openChats[this.currentChatIndex].id).messages) {
         let lastMessageSender = false;
-        const chatMessagesDivEl = this.chat.querySelector('.content').querySelector('.messages');
-        let chatMessagesDiv = {innerHTML: ""};
+        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
+        let currentBubbleGroup = false;
         chatMessagesDiv.innerHTML = '';
         chatMessages.forEach((message) => {
-            if (!lastMessageSender) {
-                chatMessagesDiv.innerHTML += `<div class="bubbleGroup">`;
-                if (message.sender === "system") {
-                    chatMessagesDiv.innerHTML += `<div style="display: none"></div>`;
-                } else {
-                    chatMessagesDiv.innerHTML += `<div class="bubble senderAvatar avatar">
-                        <img src="${message.author.avatar}" alt="">
-                    </div>`;
-                }
-                chatMessagesDiv.innerHTML += `<div class="bubbleGroupMessage">`;
+            if (lastMessageSender != message.sender) {
+                if (currentBubbleGroup != false) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
+                currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
             }
-            else if (lastMessageSender != message.sender) {
-                chatMessagesDiv.innerHTML += `</div></div><div class="bubbleGroup">`;
-                if (message.sender === "system") {
-                    chatMessagesDiv.innerHTML += `<div style="display: none"></div>`;
-                } else {
-                    chatMessagesDiv.innerHTML += `<div class="bubble senderAvatar avatar">
-                        <img src="${message.author.avatar}" alt="">
-                    </div>`;
-                }
-                chatMessagesDiv.innerHTML += `<div class="bubbleGroupMessage">`;
-            }
-            
-            chatMessagesDiv.innerHTML += `
-                <div class="bubble${message.sender === "system" ? " system" : (
-                    message.sender === "own" ? " sent" : ""
-                )}">
-                    <div class="header">${message.author.username}</div>
-                    <div class="content">${message.content}</div>
-                    <div class="footer">${formatTimestamp(message.date)}</div>
-                </div>
-            `;
+
+            let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender);
+
+            currentBubbleGroup.addBubble(messageBubble);
             lastMessageSender = message.sender;
         });
-        if (chatMessages.length > 0) {
-            chatMessagesDiv.innerHTML += `</div></div>`;
-            chatMessagesDivEl.dataset.lastSender = lastMessageSender;
-        }
-        chatMessagesDiv.innerHTML += `
-            <div class="bubbleGroup typingBubbleGroup" style="display: none;">
-                <div class="bubble senderAvatar avatar">
-                    <img src="" alt="">
-                </div>
-                <div class="bubbleGroupMessage">
-                    <div class="bubble">
-                        <div class="header">User</div>
-                        <div class="content">${this.icons.hollowCircle}${this.icons.hollowCircle}${this.icons.hollowCircle}</div>
-                        <div class="footer">Now</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        chatMessagesDivEl.innerHTML = chatMessagesDiv.innerHTML;
+        if (currentBubbleGroup != false) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
+        chatMessagesDiv.appendChild(new ChatBubbleGroup(-1).renderHTML());
     }
 
     send(content, chatId = this.openChats[this.currentChatIndex].id) {
@@ -347,12 +306,18 @@ class ChatBubbleGroup {
         bubbleGroupAvatar.className = 'bubble senderAvatar avatar';
         bubbleGroupMessage.className = 'bubbleGroupMessage';
 
-        bubbleGroupAvatar.innerHTML = `<img src="${this.avatar}" alt="">`;
+        if (this.avatar === -1) {
+            let chatIcons = new Chat().icons;
+            this.bubbleGroup.className += ' typingBubbleGroup';
+            this.bubbleGroup.style.display = 'none';
+            this.bubbles = [new ChatBubble(chatIcons.hollowCircle.repeat(3), "User", new Date().getTime())];
+        } else bubbleGroupAvatar.innerHTML = `<img src="${this.avatar}" alt="">`;
 
         this.bubbleGroup.appendChild(bubbleGroupAvatar);
         this.bubbleGroup.appendChild(bubbleGroupMessage);
         this.bubbles.forEach((bubble) => {
             bubbleGroupMessage.appendChild(bubble.renderHTML());
+            this.bubbleGroup.dataset.lastSender = bubble.bubbleType;
         });
         return this.bubbleGroup;
             /*
@@ -373,8 +338,8 @@ class ChatBubbleGroup {
 }
 
 class ChatBubble {
-    constructor(message, sender, timestamp) {
-        this.update(message, sender, timestamp);
+    constructor(message, sender, timestamp, bubbleType = "") {
+        this.update(message, sender, timestamp, bubbleType);
     }
 
     update(message, sender, timestamp, bubbleType = "") {
