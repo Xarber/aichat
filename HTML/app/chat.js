@@ -92,6 +92,38 @@ class Chat {
         return false;
     }
 
+    matchesRule(str, rule) {
+        //ciao.hey matches rule *hey, *.hey etc; ciao.hey.hello respects *hey*, *.hey.* etc.
+        if (typeof str != "string" || typeof rule != "string") return false;
+        var escapeRegex = (str) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+        return new RegExp("^" + rule.split("*").map(escapeRegex).join(".*") + "$").test(str);
+    }
+
+    getAllBetween(str, startDelim, endDelim) {
+        const result = [];
+        let startIndex = 0;
+        
+        while (true) {
+            // Find the next start delimiter
+            const start = str.indexOf(startDelim, startIndex);
+            if (start === -1) break;
+            
+            // Find the next end delimiter after the start
+            const contentStart = start + startDelim.length;
+            const end = str.indexOf(endDelim, contentStart);
+            if (end === -1) break;
+            
+            // Extract the content between delimiters
+            const content = str.substring(contentStart, end);
+            result.push(content);
+            
+            // Move the start index for the next iteration
+            startIndex = end + endDelim.length;
+        }
+        
+        return result;
+    }
+
     async fetchAndStream(url, options, onDataCallback = console.log) {
         const response = await fetch(url, options);
         const reader = response.body.getReader();
@@ -137,11 +169,11 @@ class Chat {
                         chatActions.querySelector('input').value = "";
                         break;
                     case 'sendAsOther':
-                        this.debugAddMessage(chatActions.querySelector('input').value, undefined, "user");
+                        this.debugAddMessage(chatActions.querySelector('input').value, "user");
                         chatActions.querySelector('input').value = "";
                         break;
                     case 'scheduleSend':
-                        this.debugAddMessage(chatActions.querySelector('input').value, undefined, "system");
+                        this.debugAddMessage(chatActions.querySelector('input').value, "system");
                         chatActions.querySelector('input').value = "";
                         break;
                 }
@@ -221,6 +253,9 @@ class Chat {
     send(content, chatId = this.openChats[this.currentChatIndex].id) {
         if (!content) return;
 
+        const chatindex = this.openChats.findIndex(x => x.id === chatId);
+        const chat = this.openChats[chatindex];
+
         this.sendMessage(chatId, {
             sender: "own",
             content: content,
@@ -228,6 +263,80 @@ class Chat {
             date: new Date().getTime()
         });
         this.renderMessages(this.loadChatData(chatId).messages);
+
+        if (chat.bot === true) {
+            let chatBubble = this.onMessageReceive({
+                content: "...",
+                sender: "user",
+                date: new Date().getTime(),
+                author: {
+                    username: chat.name,
+                    avatar: chat.icon
+                }
+            });
+
+            let toggleInput = ()=>{
+                const chatActions = this.chat.querySelector('.content').querySelector('.input');
+                chatActions.querySelectorAll('button').forEach(e=>{e.disabled = !e.disabled});
+            };
+
+            if (typeof chat.messageStreamFunction === "function") {
+                chat.messageStreamFunction(content, chatBubble, toggleInput);
+            } else {
+                toggleInput();
+                chatBubble.bubble.style.display = "none";
+                this.userTyping(true);
+                this.AIPrompt(content, (data, isDone)=>{
+                    chatBubble.bubble.style.display = "";
+                    this.userTyping(false);
+                    console.log(isDone);
+                    data = data.split("\n");
+                    let messageContent = "";
+                    for (var line of data) {
+                        if (line.length < 2) continue;
+                        line = JSON.parse(line.substr(line.indexOf('{'), line.lastIndexOf('}') + 1));
+                        messageContent += line.response;
+                        
+                        messageContent = ((originalmsg)=>{
+                            let msgLines = originalmsg.split("\n");
+                            let msg = "";
+                            for (var i = 0;i < msgLines.length;i++) {
+                                let line = msgLines[i];
+                                msg += `${line}${i === msgLines.length - 1 ? "" : "<br>"}`;
+                                if (i < msgLines.length - 1) {
+                                    this.getAllBetween(msg, "***", "***").forEach((str)=>msg = msg.replace(`***${str}***`, `<b><i>${str}</i></b>`));
+                                    this.getAllBetween(msg, "**", "**").forEach((str)=>msg = msg.replace(`**${str}**`, `<b>${str}</b>`));
+                                    this.getAllBetween(msg, "*", "*").forEach((str)=>msg = msg.replace(`*${str}*`, `<i>${str}</i>`));
+                                }
+                            }
+                            return msg;
+                        })(messageContent);
+
+                        //messageContent = messageContent.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+                        chatBubble.update(messageContent, undefined, undefined, undefined, true);
+                    }
+                    if (isDone) {
+                        messageContent = ((msg)=>{
+                            let msgLines = msg.split("\n");
+                            for (var i = 0;i < msgLines.length;i++) {
+                                let line = msgLines[i];
+                                msg += `${line}${i === msgLines.length - 1 ? "" : "<br>"}`;
+                                if (i < msgLines.length - 1) {
+                                    this.getAllBetween(msg, "***", "***").forEach((str)=>msg = msg.replace(`***${str}***`, `<b><i>${str}</i></b>`));
+                                    this.getAllBetween(msg, "**", "**").forEach((str)=>msg = msg.replace(`**${str}**`, `<b>${str}</b>`));
+                                    this.getAllBetween(msg, "*", "*").forEach((str)=>msg = msg.replace(`*${str}*`, `<i>${str}</i>`));
+                                }
+                            }
+                            return msg;
+                        })(messageContent);
+                        chatBubble.update(messageContent, undefined, undefined, undefined, true);
+                        
+                        toggleInput();
+                    }
+                }, "gemma2:2b");
+            }
+        }
         
         const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
@@ -253,7 +362,7 @@ class Chat {
         }));
     }
 
-    debugAddMessage(content, chatId = this.openChats[this.currentChatIndex].id, sender = "user") {
+    debugAddMessage(content, sender = "user", chatId = this.openChats[this.currentChatIndex].id) {
         if (!content) return;
 
         const currentChatData = this.loadChatData(chatId);
@@ -276,8 +385,32 @@ class Chat {
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
     }
 
-    onMessageReceive() {
+    onMessageReceive(message) {
+        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
+        let currentBubbleGroup = chatMessagesDiv.querySelectorAll('bubbleGroup');
+        currentBubbleGroup = currentBubbleGroup[currentBubbleGroup.length - 2];
+        let createdBubbleGroup = false;
+        if (!currentBubbleGroup) {
+            currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
+            createdBubbleGroup = true;
+        }
 
+        let lastMessageSender = (currentBubbleGroup.bubbleGroup ?? currentBubbleGroup).dataset?.['lastSender'];
+        if (lastMessageSender != message.sender) {
+            currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
+            currentBubbleGroup.bubbleGroup.dataset.lastSender = message.sender;
+            createdBubbleGroup = true;
+        }
+
+        let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender);
+
+        console.log(createdBubbleGroup, chatMessagesDiv, currentBubbleGroup, messageBubble);
+
+        currentBubbleGroup.addBubble(messageBubble);
+        chatMessagesDiv.querySelector('.typingBubbleGroup')?.remove();
+        if (createdBubbleGroup) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
+        chatMessagesDiv.appendChild(new ChatBubbleGroup(-1).renderHTML());
+        return messageBubble;
     }
 
     userTyping(state = false) {
@@ -310,7 +443,7 @@ class ChatBubbleGroup {
             let chatIcons = new Chat().icons;
             this.bubbleGroup.className += ' typingBubbleGroup';
             this.bubbleGroup.style.display = 'none';
-            this.bubbles = [new ChatBubble(chatIcons.hollowCircle.repeat(3), "User", new Date().getTime())];
+            this.bubbles = [new ChatBubble(chatIcons.hollowCircle.repeat(3), "User", new Date().getTime(), "user", true)];
         } else bubbleGroupAvatar.innerHTML = `<img src="${this.avatar}" alt="">`;
 
         this.bubbleGroup.appendChild(bubbleGroupAvatar);
@@ -338,15 +471,16 @@ class ChatBubbleGroup {
 }
 
 class ChatBubble {
-    constructor(message, sender, timestamp, bubbleType = "") {
-        this.update(message, sender, timestamp, bubbleType);
+    constructor(message, sender, timestamp, bubbleType = "", allowHTML = false) {
+        this.update(message, sender, timestamp, bubbleType, allowHTML);
     }
 
-    update(message, sender, timestamp, bubbleType = "") {
+    update(message, sender, timestamp, bubbleType = "", allowHTML = false) {
         this.message = message ?? this.message ?? "";
         this.sender = sender ?? this.sender ?? "Unknown";
         this.timestamp = timestamp ?? new Date().getTime();
         this.bubbleType = bubbleType ?? this.bubbleType ?? "";
+        this.allowHTML = allowHTML ?? this.allowHTML ?? false;
         return this.renderHTML();
     }
 
@@ -362,7 +496,8 @@ class ChatBubble {
         content.className = 'content';
         footer.className = 'footer';
         header.innerHTML = this.sender;
-        content.innerHTML = this.message;
+        if (this.allowHTML) {content.innerHTML = this.message;}
+        else {content.innerText = this.message;}
         footer.innerHTML = formatTimestamp(this.timestamp);
 
         this.bubble.appendChild(header);
