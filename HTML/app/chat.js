@@ -23,9 +23,9 @@ function formatTimestamp(timestamp) {
     return `${day}/${month} at ${hours}:${minutes}`;
 }
 class Chat {
-    constructor(chatContainer, options = {}) {
+    constructor(chatContainer, options = {}, dummy = false) {
         this.chat = chatContainer;
-        this.update(options);
+        if (!dummy) this.update(options);
     }
 
     icons = {
@@ -141,6 +141,106 @@ class Chat {
         return result;
     }
 
+    markdownToHtml(markdown) {
+        function escapeHtml(text) {
+            const htmlEntities = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '/': '&#x2F;',
+                '=': '&#x3D;'
+            };
+            return String(text).replace(/[&<>"'=\/]/g, char => htmlEntities[char]);
+        }
+    
+        function sanitizeUrl(url) {
+            return url.replace(/^javascript:/i, '').replace(/^data:/i, '');
+        }
+    
+        function insertAtOffset(original, offset, textToInsert) {
+            return original.slice(0, offset) + textToInsert + original.slice(offset);
+        }
+    
+        // Salviamo temporaneamente i blocchi di codice prima di qualsiasi trasformazione
+        const codeBlocks = [];
+        let html = markdown.replace(/```([\s\S]*?)```/g, (match, code, offset) => {
+            codeBlocks.push({
+                index: offset,
+                code
+            });
+            return "";
+        });
+    
+        const inlineCodeBlocks = [];
+        html = html.replace(/`([^`]+)`/g, (match, code, offset) => {
+            inlineCodeBlocks.push({
+                index: offset,
+                code
+            });
+            return "";
+        });
+    
+        // Facciamo l'escape dell'HTML nel testo rimanente
+        html = escapeHtml(html);
+    
+        // Gestione backslash escape
+        html = html.replace(/\\([\\`*_{}\[\]()#+\-.!])/g, (match, char) => 
+            `&#${char.charCodeAt(0)};`
+        );
+    
+        // Intestazioni
+        html = html.replace(/^(#{1,6})\s+(.*?)$/gm, (match, hashes, content) => 
+            `<h${hashes.length}>${content.trim()}</h${hashes.length}>`
+        );
+    
+        // Immagini
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => 
+            `<img src="${sanitizeUrl(url)}" alt="${alt}">`
+        );
+    
+        // Links
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => 
+            `<a href="${sanitizeUrl(url)}">${text}</a>`
+        );
+    
+        // Liste numerate
+        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>');
+    
+        // Liste puntate
+        html = html.replace(/^[-*+]\s+(.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    
+        // Stili di testo
+        // Grassetto
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+        html = html.replace(/__([^_]+)__/g, '<b>$1</b>');
+    
+        // Corsivo
+        html = html.replace(/\*([^*]+)\*/g, '<i>$1</i>');
+        html = html.replace(/_([^_]+)_/g, '<i>$1</i>');
+    
+        // Sottolineato
+        html = html.replace(/~~([^~]+)~~/g, '<u>$1</u>');
+    
+        // Ripristiniamo i blocchi di codice dopo aver processato tutto il markdown
+        codeBlocks.reverse();
+        inlineCodeBlocks.reverse();
+        codeBlocks.forEach((code, index) => {
+            html = insertAtOffset(html, code.index, `<pre><code>${escapeHtml(code.code)}</code></pre>`);
+        });
+        inlineCodeBlocks.forEach((code, index) => {
+            html = insertAtOffset(html, code.index, `<code>${escapeHtml(code.code)}</code>`);
+        });
+    
+        // Gestione delle nuove linee
+        html = html.replace(/\n/g, '<br>');
+    
+        return html;
+    }
+
     addEventListeners(addSidebarListener = false) {
         const sidebar = this.chat.querySelector('.sidebar');
         if (addSidebarListener === true) sidebar.addEventListener('click', (event) => {
@@ -241,7 +341,7 @@ class Chat {
                 currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
             }
 
-            let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender);
+            let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender, message.html);
 
             currentBubbleGroup.addBubble(messageBubble);
             lastMessageSender = message.sender;
@@ -265,7 +365,7 @@ class Chat {
         this.renderMessages(this.loadChatData(chatId).messages);
 
         if (chat.bot === true) {
-            let chatBubble = this.onMessageReceive({
+            let chatBubbleMetadata = {
                 content: "...",
                 sender: "user",
                 date: new Date().getTime(),
@@ -273,7 +373,8 @@ class Chat {
                     username: chat.name,
                     avatar: chat.icon
                 }
-            });
+            };
+            let chatBubble = this.onMessageReceive(chatBubbleMetadata);
 
             let toggleInput = ()=>{
                 const chatActions = this.chat.querySelector('.content').querySelector('.input');
@@ -284,12 +385,24 @@ class Chat {
                 chat.messageStreamFunction(content, chatBubble, toggleInput);
             } else {
                 toggleInput();
-                chatBubble.bubble.style.display = "none";
+                chatBubble.bubble.parentNode.parentNode.style.display = "none";
                 this.userTyping(true);
-                this.AIPrompt(content, (data, isDone)=>{
-                    chatBubble.bubble.style.display = "";
+                const currentChatData = this.loadChatData(chatId);
+                const messageHistory = ((data)=>{
+                    let returnValue = [];
+                    data.forEach(e=>{
+                        returnValue.push({
+                            role: e.sender === "user" ? "assistant" : (
+                                e.sender === "own" ? "user" : e.sender
+                            ),
+                            content: e.content
+                        })
+                    });
+                    return returnValue;
+                })(currentChatData.messages);
+                this.AIPrompt(messageHistory, (data, isDone)=>{
+                    chatBubble.bubble.parentNode.parentNode.style.display = "";
                     this.userTyping(false);
-                    console.log(isDone);
                     data = data.split("\n");
                     let messageContent = "";
                     for (var line of data) {
@@ -297,40 +410,17 @@ class Chat {
                         line = JSON.parse(line.substr(line.indexOf('{'), line.lastIndexOf('}') + 1));
                         messageContent += line.response;
                         
-                        messageContent = ((originalmsg)=>{
-                            let msgLines = originalmsg.split("\n");
-                            let msg = "";
-                            for (var i = 0;i < msgLines.length;i++) {
-                                let line = msgLines[i];
-                                msg += `${line}${i === msgLines.length - 1 ? "" : "<br>"}`;
-                                if (i < msgLines.length - 1) {
-                                    this.getAllBetween(msg, "***", "***").forEach((str)=>msg = msg.replace(`***${str}***`, `<b><i>${str}</i></b>`));
-                                    this.getAllBetween(msg, "**", "**").forEach((str)=>msg = msg.replace(`**${str}**`, `<b>${str}</b>`));
-                                    this.getAllBetween(msg, "*", "*").forEach((str)=>msg = msg.replace(`*${str}*`, `<i>${str}</i>`));
-                                }
-                            }
-                            return msg;
-                        })(messageContent);
-
-                        //messageContent = messageContent.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+                        messageContent = this.markdownToHtml(line.totalResponse);
 
                         chatBubble.update(messageContent, undefined, undefined, undefined, true);
+                        chatBubbleMetadata.content = messageContent;
+                        chatBubbleMetadata.html = true;
                     }
                     if (isDone) {
-                        messageContent = ((msg)=>{
-                            let msgLines = msg.split("\n");
-                            for (var i = 0;i < msgLines.length;i++) {
-                                let line = msgLines[i];
-                                msg += `${line}${i === msgLines.length - 1 ? "" : "<br>"}`;
-                                if (i < msgLines.length - 1) {
-                                    this.getAllBetween(msg, "***", "***").forEach((str)=>msg = msg.replace(`***${str}***`, `<b><i>${str}</i></b>`));
-                                    this.getAllBetween(msg, "**", "**").forEach((str)=>msg = msg.replace(`**${str}**`, `<b>${str}</b>`));
-                                    this.getAllBetween(msg, "*", "*").forEach((str)=>msg = msg.replace(`*${str}*`, `<i>${str}</i>`));
-                                }
-                            }
-                            return msg;
-                        })(messageContent);
-                        chatBubble.update(messageContent, undefined, undefined, undefined, true);
+                        this.updateChatData(chatId, {
+                            ...currentChatData,
+                            messages: [...currentChatData.messages, chatBubbleMetadata]
+                        });
                         
                         toggleInput();
                     }
@@ -347,7 +437,8 @@ class Chat {
             method: "POST",
             body: JSON.stringify({
                 model: model,
-                prompt: content
+                prompt: content,
+                messages: typeof content === "object" && Array.isArray(content) ? content : undefined
             })
         }, callback ?? ((data, isDone)=>{
             data = data.split("\n");
@@ -403,8 +494,6 @@ class Chat {
         }
 
         let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender);
-
-        console.log(createdBubbleGroup, chatMessagesDiv, currentBubbleGroup, messageBubble);
 
         currentBubbleGroup.addBubble(messageBubble);
         chatMessagesDiv.querySelector('.typingBubbleGroup')?.remove();
@@ -497,7 +586,7 @@ class ChatBubble {
         footer.className = 'footer';
         header.innerHTML = this.sender;
         if (this.allowHTML) {content.innerHTML = this.message;}
-        else {content.innerText = this.message;}
+        else {content.innerHTML = new Chat(false, false, true).markdownToHtml(this.message);}
         footer.innerHTML = formatTimestamp(this.timestamp);
 
         this.bubble.appendChild(header);

@@ -26,11 +26,14 @@
     "formidable": "^3.5.2",
     "hi-base32": "^0.5.1",
     "lookpath": "^1.2.2",
-    "ollama-node": "^0.1.28",
+    "ollama": "^0.5.10",
     "os": "^0.1.2",
     "peer": "^1.0.2",
     "public-ip": "^7.0.1",
     "request": "^2.88.2",
     "ws": "^8.18.0"
+  },
+  "deprecatedDependencies": {
+    "ollama-node": "^0.1.28"
   }
 }

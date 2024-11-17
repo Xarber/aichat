@@ -1,7 +1,7 @@
 let body = otherargs[0].body;
 const deasync = require('deasync');
 const {parseCookies} = require('./js-modules/cookies.cjs');
-const ollama = require("ollama").default;
+const {Ollama} = deasyncPromise(import('ollama-node'));
 
 function deasyncPromise(promise) {
     let isDone = false;
@@ -20,33 +20,27 @@ function deasyncPromise(promise) {
 }
 
 const cookies = parseCookies(otherargs[0].headers.cookie);
+const ollamaClient = new Ollama();
+deasyncPromise(ollamaClient.setModel("gemma2"));
 
 otherargs[2].setHeader('Transfer-Encoding', 'chunked');
 otherargs[2].setHeader('Content-Type', 'text/plain');
 
-if ((body.prompt && body.prompt.length > 0) || (body.messages && body.messages.length > 0)) deasyncPromise(new Promise(async (r)=>{
+if (body.prompt && body.prompt.length > 0) deasyncPromise(new Promise(async (r)=>{
     let totalResponse = "";
-    const response = await ollama.chat({
-        model: "gemma2" ?? body.model,
-        messages: [...(body.messages ?? [{
-            role: "user",
-            content: body.prompt ?? "Why is the sky blue?"
-        }])],
-        stream: true
-    });
-    for await (const data of response) {
-        totalResponse += data.message.content;
+    await ollamaClient.streamingGenerate(body.prompt ?? "Why is the sky blue?", undefined, undefined, (data)=>{
+        data = JSON.parse(data);
+        totalResponse += data.response;
         const output = {
             status: true,
-            model: data.model,
-            response: data.message.content,
+            response: data.response,
             totalResponse: totalResponse,
             time: data.total_duration,
             done: data.done
         };
         otherargs[2].write(JSON.stringify(output)+"\n");
         if (data.done === true) return r();
-    }
+    })
 }));
 else echo({status: false, response: "Please enter a prompt."});
 
