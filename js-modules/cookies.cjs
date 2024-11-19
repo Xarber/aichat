@@ -30,8 +30,8 @@ function setCookies(res, cookies) {
     res.setHeader('Set-Cookie', cookieHeaders.length === 1 ? cookieHeaders[0] : cookieHeaders);
 }
 function parseCookies(cookieHeader = '') {
-    if (cookieHeader.headers) cookieHeader = cookieHeader.headers.cookie || '';
-    if (cookieHeader.cookie) cookieHeader = cookieHeader.cookie || '';
+    if (cookieHeader.headers) cookieHeader = cookieHeader.headers.cookie ?? '';
+    if (cookieHeader.cookie) cookieHeader = cookieHeader.cookie ?? '';
     return cookieHeader.split(';').reduce((cookies, cookie) => {
         const [name, value] = cookie.split('=').map(c => c.trim());
         if (name && value) {

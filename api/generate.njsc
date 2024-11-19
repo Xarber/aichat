@@ -19,7 +19,7 @@ function deasyncPromise(promise) {
     return result;
 }
 
-const cookies = parseCookies(otherargs[0].headers);
+const cookies = parseCookies(otherargs[0]);
 
 otherargs[2].setHeader('Transfer-Encoding', 'chunked');
 otherargs[2].setHeader('Content-Type', 'text/plain');
