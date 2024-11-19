@@ -29,7 +29,7 @@ function setCookies(res, cookies) {
     // Set single or multiple cookies in the response header
     res.setHeader('Set-Cookie', cookieHeaders.length === 1 ? cookieHeaders[0] : cookieHeaders);
 }
-function parseCookies(cookieHeader) {
+function parseCookies(cookieHeader = '') {
     if (cookieHeader.headers) cookieHeader = cookieHeader.headers.cookie || '';
     if (cookieHeader.cookie) cookieHeader = cookieHeader.cookie || '';
     return cookieHeader.split(';').reduce((cookies, cookie) => {
