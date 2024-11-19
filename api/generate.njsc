@@ -27,7 +27,7 @@ otherargs[2].setHeader('Content-Type', 'text/plain');
 if ((body.prompt && body.prompt.length > 0) || (body.messages && body.messages.length > 0)) deasyncPromise(new Promise(async (r)=>{
     let totalResponse = "";
     const response = await ollama.chat({
-        model: "gemma2" ?? body.model,
+        model: "gemma2:2b" ?? body.model,
         messages: [...(body.messages ?? [{
             role: "user",
             content: body.prompt ?? "Why is the sky blue?"
