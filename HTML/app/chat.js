@@ -255,10 +255,8 @@ class Chat {
         if (!chatActions || !chatHeader) return;
 
         chatActions.querySelector('input').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                this.send(chatActions.querySelector('input').value);
-                chatActions.querySelector('input').value = "";
-            }
+            //this.send(chatActions.querySelector('input').value);
+            if (event.key === 'Enter') chatActions.querySelector('button[data-type=send]').click();
         });
 
         chatActions.querySelectorAll('button').forEach(e=>{
