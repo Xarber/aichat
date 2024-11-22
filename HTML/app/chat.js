@@ -206,8 +206,8 @@ class Chat {
         );
     
         // Liste numerate
-        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>');
+        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li ordered>$1</li>');
+        html = html.replace(/(<li ordered>.*<\/li>\n?)+/g, '<ol>$&</ol>');
     
         // Liste puntate
         html = html.replace(/^[-*+]\s+(.+)$/gm, '<li>$1</li>');
@@ -237,7 +237,8 @@ class Chat {
     
         // Gestione delle nuove linee
         html = html.replace(/\n/g, '<br>');
-    
+        html = html.trim();
+
         return html;
     }
 

@@ -21,8 +21,6 @@ function deasyncPromise(promise) {
 
 const cookies = parseCookies(otherargs[0]);
 
-console.log("Access", cookies);
-
 otherargs[2].setHeader('Transfer-Encoding', 'chunked');
 otherargs[2].setHeader('Content-Type', 'text/plain');
 
