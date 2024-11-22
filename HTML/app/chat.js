@@ -325,6 +325,9 @@ class Chat {
                 <button data-type="send">${this.icons.send}</button>
             </div>
         `;
+
+        this.chatManager = new ChatBubbleManager(chatDiv.querySelector('div.messages'));
+
         this.renderMessages(chatData.messages);
         this.addEventListeners();
     }
@@ -338,11 +341,14 @@ class Chat {
             if (lastMessageSender != message.sender) {
                 if (currentBubbleGroup != false) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
                 currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
+                this.chatManager.observeBubbleGroup(currentBubbleGroup);
             }
 
             let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender, message.html);
 
             currentBubbleGroup.addBubble(messageBubble);
+            this.chatManager.observeBubble(messageBubble);
+
             lastMessageSender = message.sender;
         });
         if (currentBubbleGroup != false) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
@@ -481,6 +487,7 @@ class Chat {
         if (!currentBubbleGroup) {
             currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
             createdBubbleGroup = true;
+            this.chatManager.observeBubbleGroup(currentBubbleGroup);
         }
 
         let lastMessageSender = (currentBubbleGroup.bubbleGroup ?? currentBubbleGroup).dataset?.['lastSender'];
@@ -488,11 +495,14 @@ class Chat {
             currentBubbleGroup = new ChatBubbleGroup(message.author.avatar);
             currentBubbleGroup.bubbleGroup.dataset.lastSender = message.sender;
             createdBubbleGroup = true;
+            this.chatManager.observeBubbleGroup(currentBubbleGroup);
         }
 
         let messageBubble = new ChatBubble(message.content, message.author.username, message.date, message.sender);
 
         currentBubbleGroup.addBubble(messageBubble);
+        this.chatManager.observeBubble(messageBubble);
+
         chatMessagesDiv.querySelector('.typingBubbleGroup')?.remove();
         if (createdBubbleGroup) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
         chatMessagesDiv.appendChild(new ChatBubbleGroup(-1).renderHTML());
@@ -512,6 +522,57 @@ class Chat {
 
     userTyping(state = false) {
         this.chat.querySelector('.content').querySelector('.typingBubbleGroup').style.display = state ? "flex" : "none";
+    }
+}
+
+class ChatBubbleManager {
+    constructor(containerElement, visibilityThreshold = 100) {
+        this.container = containerElement;
+        this.bubbles = new WeakMap(); // Store bubble instances
+        this.visibilityThreshold = visibilityThreshold;
+        this.setupIntersectionObserver();
+    }
+
+    setupIntersectionObserver() {
+        this.observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    const bubble = this.bubbles.get(entry.target);
+                    if (!bubble) return;
+
+                    if (entry.isIntersecting) {
+                        bubble.restoreFromPlaceholder();
+                    } else {
+                        bubble.convertToPlaceholder();
+                    }
+                });
+            },
+            {
+                root: this.container,
+                rootMargin: `${this.visibilityThreshold}px 0px ${this.visibilityThreshold}px 0px`,
+                threshold: 0
+            }
+        );
+    }
+
+    observeBubble(bubble) {
+        if (!bubble.bubble) return;
+        this.bubbles.set(bubble.bubble, bubble);
+        this.observer.observe(bubble.bubble);
+    }
+
+    unobserveBubble(bubble) {
+        if (!bubble.bubble) return;
+        this.observer.unobserve(bubble.bubble);
+        this.bubbles.delete(bubble.bubble);
+    }
+
+    observeBubbleGroup(bubbleGroup) {
+        bubbleGroup.bubbles.forEach(bubble => this.observeBubble(bubble));
+    }
+
+    unobserveBubbleGroup(bubbleGroup) {
+        bubbleGroup.bubbles.forEach(bubble => this.unobserveBubble(bubble));
     }
 }
 
@@ -550,15 +611,6 @@ class ChatBubbleGroup {
             this.bubbleGroup.dataset.lastSender = bubble.bubbleType;
         });
         return this.bubbleGroup;
-            /*
-            <div class="bubbleGroup">
-                <div class="bubble senderAvatar avatar">
-                    <img src="https://placehold.co/400" alt="">
-                </div>
-                <div class="bubbleGroupMessage">
-                </div>
-            </div>
-            */
     }
 
     addBubble(bubble) {
@@ -569,6 +621,8 @@ class ChatBubbleGroup {
 
 class ChatBubble {
     constructor(message, sender, timestamp, bubbleType = "", allowHTML = false) {
+        this.isPlaceholder = false;
+        this.height = 0;
         this.update(message, sender, timestamp, bubbleType, allowHTML);
     }
 
@@ -581,8 +635,34 @@ class ChatBubble {
         return this.renderHTML();
     }
 
+    convertToPlaceholder() {
+        if (this.isPlaceholder || !this.bubble) return;
+        
+        // Store the current height before converting
+        this.height = this.bubble.clientHeight;
+        
+        // Create placeholder
+        this.bubble.innerHTML = '';
+        this.bubble.className = `bubble ${this.bubbleType} placeholder`;
+        this.bubble.style.height = `${this.height}px`;
+        this.isPlaceholder = true;
+    }
+
+    restoreFromPlaceholder() {
+        if (!this.isPlaceholder || !this.bubble) return;
+        
+        this.bubble.style.height = "";
+        this.isPlaceholder = false;
+        this.renderHTML();
+    }
+
     renderHTML() {
         this.bubble = this.bubble ?? document.createElement('div');
+
+        if (this.isPlaceholder) {
+            return this.bubble;
+        }
+
         this.bubble.innerHTML = "";
         const header = document.createElement('div');
         const content = document.createElement('div');
@@ -592,14 +672,21 @@ class ChatBubble {
         header.className = 'header';
         content.className = 'content';
         footer.className = 'footer';
+
         header.innerHTML = this.sender;
-        if (this.allowHTML) {content.innerHTML = this.message;}
-        else {content.innerHTML = new Chat(false, false, true).markdownToHtml(this.message);}
+        if (this.allowHTML) {
+            content.innerHTML = this.message;
+        } else {
+            content.innerHTML = new Chat(false, false, true).markdownToHtml(this.message);
+        }
         footer.innerHTML = formatTimestamp(this.timestamp);
 
         this.bubble.appendChild(header);
         this.bubble.appendChild(content);
         this.bubble.appendChild(footer);
+
+        // Store initial height after rendering
+        this.height = this.bubble.clientHeight;
         return this.bubble;
     }
 }

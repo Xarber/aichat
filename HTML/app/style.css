@@ -91,35 +91,35 @@ button {
     overflow-y: auto;
 }
 
-.chat > .content > .messages > .bubbleGroup {
+.chat > .content > .messages .bubbleGroup {
     display: flex;
     gap: 10px;
 }
 
-.chat > .content > .messages > .bubbleGroup.typingBubbleGroup {
+.chat > .content > .messages .bubbleGroup.typingBubbleGroup {
     opacity: 0.3;
 }
-.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .senderAvatar {opacity: 0}
-.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > *:not(.content) {display: none;}
-.chat > .content > .messages > .bubbleGroup.typingBubbleGroup {width: min-content;}
-.chat > .content > .messages > .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > .content {
+.chat > .content > .messages .bubbleGroup.typingBubbleGroup > .senderAvatar {opacity: 0}
+.chat > .content > .messages .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > *:not(.content) {display: none;}
+.chat > .content > .messages .bubbleGroup.typingBubbleGroup {width: min-content;}
+.chat > .content > .messages .bubbleGroup.typingBubbleGroup > .bubbleGroupMessage > .bubble > .content {
     width: 80px;
     animation: blink 3s infinite;
 }
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage {
     flex: 1
 }
 
-.chat > .content > .messages > .bubbleGroup > .bubble.senderAvatar {
+.chat > .content > .messages .bubbleGroup > .bubble.senderAvatar {
     margin: 5px 0;
     width: 40px;
     height: 40px;
 }
-.chat > .content > .messages > .bubbleGroup:has(.bubble.own) {
+.chat > .content > .messages .bubbleGroup:has(.bubble.own) {
     flex-direction: row-reverse;
 }
 
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble {
     display: block;
     max-width: calc(80% - 20px);
     margin: 5px;
@@ -129,12 +129,18 @@ button {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 0 10px 10px 10px;
 }
-.chat > .content > .messages > .bubbleGroup:has(.bubble.system) {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble.placeholder {
+    background: transparent !important;
+    border: none !important;
+    margin: 2px 0;
+    transition: height 0.2s ease-in-out;
+}
+.chat > .content > .messages .bubbleGroup:has(.bubble.system) {
     margin-top: 10px;
     margin-bottom: 10px;
 }
-.chat > .content > .messages > .bubbleGroup:has(.bubble.system) > .bubble.senderAvatar.avatar {display: none;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system {
+.chat > .content > .messages .bubbleGroup:has(.bubble.system) > .bubble.senderAvatar.avatar {display: none;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble.system {
     display: block;
     margin: auto;
     padding: 5px;
@@ -144,14 +150,14 @@ button {
 
     background-color: transparent;
 }
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.system > div:not(.content) {display: none;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.own:not(:only-child):first-child {border-radius: 10px 0 0 0;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):first-child {border-radius: 0px 10px 0 0;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) {border-radius: 0;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child {border-radius: 0 0 10px 10px;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) > .header,
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child > .header {display: none;}
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble.own {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble.system > div:not(.content) {display: none;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble.own:not(:only-child):first-child {border-radius: 10px 0 0 0;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):first-child {border-radius: 0px 10px 0 0;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) {border-radius: 0;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child {border-radius: 0 0 10px 10px;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):not(:first-child):not(:last-child) > .header,
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble:not(:only-child):last-child > .header {display: none;}
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble.own {
     background: rgb(0,129,255);
     background: linear-gradient(0deg, rgba(0,129,255,1) 0%, rgba(0,129,255,0.8071603641456583) 100%);
     margin-right: 0;
@@ -159,10 +165,10 @@ button {
     border-radius: 10px 0 10px 10px;
 }
 
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble > .header {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble > .header {
     font-weight: bold;
 }
-.chat > .content > .messages > .bubbleGroup > .bubbleGroupMessage > .bubble > .footer {
+.chat > .content > .messages .bubbleGroup > .bubbleGroupMessage > .bubble > .footer {
     text-align: right;
     font-size: 11px;
     color: rgba(255, 255, 255, 0.8);
