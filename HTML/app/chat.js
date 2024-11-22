@@ -236,8 +236,8 @@ class Chat {
         });
     
         // Gestione delle nuove linee
-        html = html.replace(/\n/g, '<br>');
         html = html.trim();
+        html = html.replace(/\n/g, '<br>');
 
         return html;
     }
