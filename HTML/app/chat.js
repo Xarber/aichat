@@ -427,8 +427,7 @@ class Chat {
             }
         }
         
-        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
-        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        if (this.isScrolledToBottom()) this.scrollToBottom();
     }
 
     async AIPrompt(content, callback, model = "gemma2") {
@@ -471,8 +470,7 @@ class Chat {
 
         this.renderMessages(this.loadChatData(chatId).messages);
 
-        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
-        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        if (this.isScrolledToBottom()) this.scrollToBottom();
     }
 
     onMessageReceive(message) {
@@ -499,6 +497,17 @@ class Chat {
         if (createdBubbleGroup) chatMessagesDiv.appendChild(currentBubbleGroup.renderHTML());
         chatMessagesDiv.appendChild(new ChatBubbleGroup(-1).renderHTML());
         return messageBubble;
+    }
+
+    isScrolledToBottom() {
+        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
+        const tolerance = 100; // pixels from bottom to trigger auto-scroll
+        return chatMessagesDiv.scrollHeight - chatMessagesDiv.scrollTop - chatMessagesDiv.clientHeight < tolerance;
+    }
+
+    scrollToBottom() {
+        const chatMessagesDiv = this.chat.querySelector('.content').querySelector('.messages');
+        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
     }
 
     userTyping(state = false) {
