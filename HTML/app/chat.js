@@ -417,7 +417,9 @@ class Chat {
                         
                         messageContent = this.markdownToHtml(line.totalResponse);
 
-                        chatBubble.update(messageContent, undefined, undefined, undefined, true);
+                        chatBubble.update(messageContent, undefined, undefined, undefined, true, ()=>{
+                            if (this.isScrolledToBottom()) this.scrollToBottom();
+                        });
                         chatBubbleMetadata.content = messageContent;
                         chatBubbleMetadata.html = true;
                     }
@@ -620,18 +622,19 @@ class ChatBubbleGroup {
 }
 
 class ChatBubble {
-    constructor(message, sender, timestamp, bubbleType = "", allowHTML = false) {
+    constructor(message, sender, timestamp, bubbleType = "", allowHTML = false, scrollToBottomFn = ()=>{}) {
         this.isPlaceholder = false;
         this.height = 0;
-        this.update(message, sender, timestamp, bubbleType, allowHTML);
+        this.update(message, sender, timestamp, bubbleType, allowHTML, scrollToBottomFn);
     }
 
-    update(message, sender, timestamp, bubbleType = "", allowHTML = false) {
+    update(message, sender, timestamp, bubbleType = "", allowHTML = false, scrollToBottomFn = ()=>{}) {
         this.message = message ?? this.message ?? "";
         this.sender = sender ?? this.sender ?? "Unknown";
         this.timestamp = timestamp ?? new Date().getTime();
         this.bubbleType = bubbleType ?? this.bubbleType ?? "";
         this.allowHTML = allowHTML ?? this.allowHTML ?? false;
+        this.scrollToBottomFn = scrollToBottomFn;
         return this.renderHTML();
     }
 
@@ -687,6 +690,7 @@ class ChatBubble {
 
         // Store initial height after rendering
         this.height = this.bubble.clientHeight;
+        this.scrollToBottomFn();
         return this.bubble;
     }
 }
