@@ -74,10 +74,131 @@ class PeerConnection {
         return this.connection.send(data);
     }
 
-    callPeer() {
-        var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+    userStream = [false, {
+        toggleMicrophone: cb=>this.#toggleMicrophone(cb),
+        toggleWebcam: cb=>this.#toggleWebcam(cb),
+        toggleScreenSharing: cb=>this.#toggleScreenSharing(cb),
+        close: cb=>this.#closeUserStream(cb)
+    }];
 
-        getUserMedia({video: true, audio: true}, function(stream) {
+    getUserStream(constraints = { audio: true }, callback, errorCallback) {
+        const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.mediaDevices?.getUserMedia;
+
+        if (!getUserMedia) {
+            const error = new Error("getUserMedia is not supported in this browser.");
+            this.eventHandlers?.onCallError?.(error);
+            return;
+        }
+
+        if (this.userStream[0]) return callback?.(...this.userStream);
+
+        getUserMedia(constraints, stream => {
+            this.userStream[0] = stream;
+            callback?.(...this.userStream);
+        }, err => {
+            this.eventHandlers?.onCallError?.(err);
+            errorCallback?.(err);
+        });
+    }
+
+    #toggleMicrophone(callback, errorCallback) {
+        if (!this.userStream[0]) {
+            console.error("No active stream found to toggle the microphone.");
+            return;
+        }
+
+        const audioTrack = this.userStream[0].getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.stop();
+            this.userStream[0].removeTrack(audioTrack);
+        } else {
+            const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.mediaDevices?.getUserMedia;
+            getUserMedia({ audio: true }, newStream => {
+                const newAudioTrack = newStream.getAudioTracks()[0];
+                this.userStream[0].addTrack(newAudioTrack);
+                callback?.(...this.userStream);
+            }, err => {
+                console.error("Failed to toggle microphone:", err);
+                errorCallback?.(err);
+            })
+        }
+    }
+
+    #toggleWebcam(callback, errorCallback) {
+        if (!this.userStream[0]) {
+            console.error("No active stream found to toggle the webcam.");
+            return;
+        }
+
+        const videoTrack = peer.userStream[0].getVideoTracks().filter(e=>e.label.indexOf('screen') === -1)[0];
+        if (videoTrack) {
+            videoTrack.stop();
+            this.userStream[0].removeTrack(videoTrack);
+        } else {
+            const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.mediaDevices?.getUserMedia;
+            getUserMedia({ video: true }, newStream => {
+                const newVideoTrack = newStream.getVideoTracks()[0];
+                this.userStream[0].addTrack(newVideoTrack);
+                callback?.(...this.userStream);
+            }, err => {
+                console.error("Failed to toggle webcam:", err);
+                errorCallback?.(err);
+            })
+        }
+    }
+
+    #toggleScreenSharing(callback, errorCallback) {
+        if (!this.userStream[0]) {
+            console.error("No active stream found to toggle screen sharing.");
+            return;
+        }
+
+        const screenTrack = this.userStream[0].getVideoTracks().find(track => track.label.includes("screen"));
+
+        if (screenTrack) {
+            screenTrack.stop();
+            this.userStream[0].removeTrack(screenTrack);
+            callback?.(...this.userStream);
+        } else {
+            if (!navigator.mediaDevices?.getDisplayMedia) {
+                const error = new Error("getDisplayMedia is not supported in this browser.");
+                this.eventHandlers?.onCallError?.(error);
+                return;
+            }
+
+            navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+                .then(screenStream => {
+                    const newScreenTrack = screenStream.getVideoTracks()[0];
+
+                    newScreenTrack.onended = () => {
+                        this.userStream[0].removeTrack(newScreenTrack);
+                        callback?.(...this.userStream);
+                    };
+
+                    this.userStream[0].addTrack(newScreenTrack);
+                    callback?.(...this.userStream);
+                })
+                .catch(err => {
+                    console.error("Failed to toggle screen sharing:", err);
+                    errorCallback?.(err);
+                });
+        }
+    }
+
+    #closeUserStream(callback) {
+        if (!this.userStream[0]) {
+            console.warn("No active stream found to close.");
+            return;
+        }
+
+        this.userStream[0].getTracks().forEach(t=>{t.stop();});
+        this.userStream[0] = false;
+
+        callback?.(...this.userStream);
+    }
+
+    callPeer() {
+        this.getUserStream({video: true, audio: true}, function(stream) {
 
             this.call = this.manager.call(this.partyID, stream);
 

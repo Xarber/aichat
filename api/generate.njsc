@@ -26,14 +26,16 @@ otherargs[2].setHeader('Content-Type', 'text/plain');
 
 if ((body.prompt && body.prompt.length > 0) || (body.messages && body.messages.length > 0)) deasyncPromise(new Promise(async (r)=>{
     let totalResponse = "";
-    const response = await ollama.chat({
+    const ollamaOptions = {
         model: "gemma2:2b" ?? body.model,
         messages: [...(body.messages ?? [{
             role: "user",
             content: body.prompt ?? "Why is the sky blue?"
         }])],
         stream: true
-    });
+    };
+    console.log(body.messages, ollamaOptions.messages);
+    const response = await ollama.chat(ollamaOptions);
     for await (const data of response) {
         totalResponse += data.message.content;
         const output = {
