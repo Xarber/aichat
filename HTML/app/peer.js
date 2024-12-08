@@ -198,7 +198,7 @@ class PeerConnection {
     }
 
     callPeer() {
-        this.getUserStream({video: true, audio: true}, function(stream) {
+        this.getUserStream({video: false, audio: true}, function(stream) {
 
             this.call = this.manager.call(this.partyID, stream);
 
@@ -217,9 +217,8 @@ class PeerConnection {
 
     pickupCall(call) {
         this.call = call;
-        var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
-        getUserMedia({video: true, audio: true}, function(stream) {
+        this.getUserStream({video: false, audio: true}, function(stream) {
 
             this.call.answer(stream);
 
@@ -239,6 +238,7 @@ class PeerConnection {
     hangupCall() {
 
         this.call?.close();
+        this.userStream[1].close();
         this.call = undefined;
 
     }
@@ -246,15 +246,85 @@ class PeerConnection {
 
 class PeerGroupManager {
     //todo
-    constructor(manager, peers) {
+    constructor(manager, peers, eventHandlers) {
         this.status = 'stall';
-        this.manager = manager ?? new PeerConnectionManager().getManager();
+        this.peerconnmanager = manager ?? new PeerConnectionManager();
+        this.manager = this.peerconnmanager.getManager();
 
-        this.update(peers);
+        this.update(peers, eventHandlers);
     }
 
-    update(peers = []) {
+    update(peers = [], eventHandlers = {}) {
+        this.hostBackupList ??= [];
+        this.hostBackupConnections ??= [];
+        this.eventHandlers = eventHandlers ?? this.eventHandlers ?? {};
+        var changes = this.#comparePeerLists(this.hostBackupList, peers);
+        this.hostBackupList = peers;
 
+
+    }
+
+    hostBackupList = [];
+    hostBackupConnections = [];
+
+    #comparePeerLists(list1, list2) {
+        var result = {
+            added: [],
+            removed: [],
+            unchanged: []
+        }
+
+        list1.forEach((peerID) => {
+            if (!list2.includes(peerID)) result.removed.push(peerID);
+            else if (!result.unchanged.includes(peerID)) result.unchanged.push(peerID);
+        });
+
+        list2.forEach((peerID) => {
+            if (!list1.includes(peerID)) result.added.push(peerID);
+            else if (!result.unchanged.includes(peerID)) result.unchanged.push(peerID);
+        });
+
+        return result;
+    }
+
+    #createDataStructure(message, from = this.peerconnmanager.id, type = "message") {
+        return {
+            type, from,
+            data: message,
+            debugData: {
+                timestamp: new Date().getTime(),
+                hostBackups: this.hostBackupList
+            }
+        };
+    }
+
+    #removePeer(id) {
+        this.hostBackupConnections.some(function (connection) { 
+            if (connection.partyID === id) {
+                connection.close();
+                this.hostBackupConnections.splice(this.hostBackupConnections.indexOf(connection), 1);
+                return true;
+            }
+        });
+    }
+
+    #addPeer(id) {
+        this.hostBackupConnections.push(new PeerConnection(this.peerManager, id, this.eventHandlers));
+    }
+
+    broadcastMessage(message, sender, recipients = this.hostBackupConnections) {
+        recipients.reverse();
+        recipients.forEach((connection) => {
+            if (connection.partyID === sender) return;
+            connection.sendData(this.#createDataStructure(message, sender));
+        });
+        recipients.reverse();
+    }
+
+    runLatencyTest() {
+        this.hostBackupConnections.forEach((connection) => {
+            connection.sendData(this.#createDataStructure({}, undefined, "ping"));
+        });
     }
 }
 
